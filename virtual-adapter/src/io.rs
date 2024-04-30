@@ -212,12 +212,33 @@ pub static mut io: Io = Io {
     flags: 0,                                   // [byte 16]
 };
 
-#[derive(Debug)]
 #[repr(C)]
 pub struct StaticIndexEntry {
     name: *const i8,
     ty: StaticIndexType,
     data: StaticFileData,
+}
+
+impl std::fmt::Debug for StaticIndexEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let data = unsafe {
+            match self.ty {
+                StaticIndexType::ActiveFile => format!("active: (ptr: {:?}, len: {})", self.data.active.0, self.data.active.1),
+                StaticIndexType::PassiveFile => format!("passive: (idx: {}, len: {})", self.data.passive.0, self.data.passive.1),
+                StaticIndexType::Dir => format!("dir: (offset: {}, len: {})", self.data.dir.0, self.data.dir.1),
+                StaticIndexType::RuntimeDir | StaticIndexType::RuntimeFile => format!("runtime_path: {:?}", self.data.runtime_path),
+            }
+        };
+        let c_name = unsafe { CStr::from_ptr(self.name) };
+        
+        f.write_str(&format!(
+            "StaticIndexEntry {{ name: {:?}, ty: {:?}, data: {} }}",
+            c_name.to_str().unwrap_or(&format!("{:?}", self.name)),
+            self.ty,
+            data
+        ))?;
+        Ok(())
+    }
 }
 
 impl StaticIndexEntry {
