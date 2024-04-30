@@ -135,7 +135,6 @@ impl VirtFs {
     }
 }
 
-#[derive(Debug)]
 struct StaticIndexEntry {
     name: u32,
     ty: StaticIndexType,
@@ -153,6 +152,27 @@ impl WasmEncode for StaticIndexEntry {
         self.name.encode(&mut bytes[0..4]);
         self.ty.encode(&mut bytes[4..8]);
         self.data.encode(&mut bytes[8..16]);
+    }
+}
+
+impl fmt::Debug for StaticIndexEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let data = unsafe {
+            match self.ty {
+                StaticIndexType::ActiveFile => format!("active: (ptr: {}, len: {})", self.data.active.0, self.data.active.1),
+                StaticIndexType::PassiveFile => format!("passive: (idx: {}, len: {})", self.data.passive.0, self.data.passive.1),
+                StaticIndexType::Dir => format!("dir: (offset: {}, len: {})", self.data.dir.0, self.data.dir.1),
+                StaticIndexType::RuntimeHostDir => format!("host_dir: {:?}", self.data.host_path),
+                StaticIndexType::RuntimeHostFile => format!("host_file: {:?}", self.data.host_path),
+            }
+        };
+        f.write_str(&format!(
+            "StaticIndexEntry {{ name: {}, ty: {:?}, data: {} }}",
+            self.name,
+            self.ty,
+            data
+        ))?;
+        Ok(())
     }
 }
 
